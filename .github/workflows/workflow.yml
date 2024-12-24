@@ -1,38 +1,44 @@
 name: Auto-merge Workflow
+
 on:
   pull_request:
-    types: [opened, reopened]
+    types: [opened, reopened, synchronize]
+
 jobs:
   lint:
-  
     runs-on: ubuntu-latest
-    
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
       
-      - uses: actions/setup-python@v1
+      - uses: actions/setup-python@v4
         with:
           python-version: 3.8
-          
-      - name: flake8 and pylint
+      
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      
+      - name: Run flake8 and pylint
         run: |
-          pip install -r requirements.txt
           flake8 --ignore=E501,E231 *.py tests/*.py
-          pylint --errors-only --disable=C0301 --disable=C0326 *.py tests/*.py
-          
-      - name: unit tests
+          pylint --errors-only --disable=C0301,C0326 *.py tests/*.py
+      
+      - name: Run unit tests
         run: python -m unittest --verbose --failfast
-        
+
   merge:
-    if: github.actor == "jmgrd98"
     needs: [lint]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
-      - uses: hmarr/auto-approve-action@v2.0.0
+      - uses: actions/checkout@v3
+      
+      - name: Auto-approve PR
+        if: github.actor == 'jmgrd98'
+        uses: hmarr/auto-approve-action@v2.0.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - uses: managedkaos/merge-pull-request@v1.2
+      
+      - name: Merge PR
+        if: github.actor == 'jmgrd98'
+        uses: managedkaos/merge-pull-request@v1.2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
